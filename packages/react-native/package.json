@@ -1,0 +1,11 @@
+{
+  "name": "@unifyid/react-native",
+  "version": "0.1.0",
+  "type": "module",
+  "peerDependencies": {
+    "react-native": ">=0.76",
+    "react-native-app-auth": ">=8"
+  },
+  "exports": "./src/index.js"
+}
+

@@ -1,0 +1,9 @@
+name: unifyid_flutter
+description: Secure UnifyID OAuth 2.0 Authorization Code with PKCE integration for Flutter.
+version: 0.1.0
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_appauth: ^10.0.0
