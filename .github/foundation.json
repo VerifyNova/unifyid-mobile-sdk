@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "organization": "VerifyNova",
+  "name": "unifyid-mobile-sdk",
+  "tier": "library",
+  "environments": {},
+  "defaultBranch": "main",
+  "integrationBranch": "develop",
+  "requiredCheck": "verify",
+  "requiredApprovals": 0,
+  "deliveryEnabled": false
+}
