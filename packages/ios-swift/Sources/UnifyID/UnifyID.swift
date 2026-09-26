@@ -50,13 +50,7 @@ public final class UnifyIDClient: NSObject {
       .init(name: "code_challenge_method", value: "S256"),
     ]
     return try await withCheckedThrowingContinuation { continuation in
-      let callback = configuration.redirectURI.scheme == "https"
-        ? ASWebAuthenticationSession.Callback.https(
-            host: configuration.redirectURI.host!,
-            path: configuration.redirectURI.path
-          )
-        : ASWebAuthenticationSession.Callback.customScheme(configuration.redirectURI.scheme!)
-      session = ASWebAuthenticationSession(url: parts.url!, callback: callback) { url, error in
+      let finish: (URL?, Error?) -> Void = { url, error in
         if let error { continuation.resume(throwing: error); return }
         guard let url,
               URLComponents(url: url, resolvingAgainstBaseURL: false)?
@@ -67,6 +61,38 @@ public final class UnifyIDClient: NSObject {
           codeVerifier: verifier,
           nonce: nonce
         ))
+      }
+
+      // `ASWebAuthenticationSession.Callback`, and with it the https redirect a
+      // universal link needs, arrived in iOS 17.4 and macOS 14.4. This package
+      // declares iOS 15 and macOS 12, so naming it unconditionally is a compile
+      // error against the package's own minimum — which is why this target has
+      // never built.
+      if #available(iOS 17.4, macOS 14.4, *) {
+        let callback: ASWebAuthenticationSession.Callback =
+          configuration.redirectURI.scheme == "https"
+            ? .https(
+                host: configuration.redirectURI.host!,
+                path: configuration.redirectURI.path
+              )
+            : .customScheme(configuration.redirectURI.scheme!)
+        self.session = ASWebAuthenticationSession(
+          url: parts.url!,
+          callback: callback,
+          completionHandler: finish
+        )
+      } else if configuration.redirectURI.scheme == "https" {
+        // Older systems can only be given a custom scheme to watch for, so an
+        // https redirect would open a session nothing could ever complete.
+        // Refusing says so; hanging would not.
+        continuation.resume(throwing: URLError(.unsupportedURL))
+        return
+      } else {
+        self.session = ASWebAuthenticationSession(
+          url: parts.url!,
+          callbackURLScheme: configuration.redirectURI.scheme,
+          completionHandler: finish
+        )
       }
       self.session?.presentationContextProvider = AnchorProvider(anchor)
       self.session?.start()

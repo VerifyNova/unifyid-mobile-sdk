@@ -4,11 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "node scripts/check.mjs",
-    "typecheck": "node scripts/check.mjs",
+    "check:source": "node scripts/check.mjs",
     "test": "node --test packages/core/test/*.test.mjs",
     "build": "node scripts/build.mjs",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build"
+    "test:react-native": "node --experimental-vm-modules --test packages/react-native/test/*.test.mjs",
+    "check": "npm run check:source && npm test && npm run test:react-native && npm run build"
   },
   "engines": {
     "node": ">=20"

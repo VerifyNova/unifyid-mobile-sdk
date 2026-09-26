@@ -6,7 +6,7 @@ import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import java.security.MessageDigest
 import java.security.SecureRandom
-import java.util.Base64
+import android.util.Base64
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,17 +30,30 @@ data class UnifyIDTransaction(
 
 class UnifyIDClient(private val config: UnifyIDConfig) {
   private val http = OkHttpClient()
+  /**
+   * `java.util.Base64` is API 26 and this SDK declares minSdk 23, so on API 23
+   * to 25 it was not a lint warning but a crash — and lint said so, which is
+   * why :sdk:lintRelease refused the build. `android.util.Base64` has been
+   * there since API 8.
+   *
+   * NO_WRAP matters as much as the rest: the platform encoder inserts line
+   * breaks by default, and a PKCE verifier or challenge with a newline in it is
+   * rejected by the authorization server rather than misread, so the failure
+   * would have arrived as a sign-in that never completes.
+   */
+  private fun urlSafe(value: ByteArray): String =
+    Base64.encodeToString(value, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
+
   private fun random(size: Int): String {
     val value = ByteArray(size).also(SecureRandom()::nextBytes)
-    return Base64.getUrlEncoder().withoutPadding().encodeToString(value)
+    return urlSafe(value)
   }
 
   fun createTransaction(): UnifyIDTransaction {
     val state = random(32)
     val nonce = random(32)
     val verifier = random(64)
-    val challenge = Base64.getUrlEncoder().withoutPadding()
-      .encodeToString(MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray()))
+    val challenge = urlSafe(MessageDigest.getInstance("SHA-256").digest(verifier.toByteArray()))
     val url = Uri.parse(config.authorizeUrl).buildUpon()
       .appendQueryParameter("response_type", "code")
       .appendQueryParameter("client_id", config.clientId)
